@@ -1,0 +1,219 @@
+1 //REGISTRO BÁSICO
+
+const User = require('../models/user.model.js');
+
+const register = (req, res) => { 
+
+    const { email, password, username } = req.body; //Extraigo los datos que necesito del body.
+    console.log( email, password, username );
+
+        const newUser = new User({
+            username,
+            email,
+            password
+        })
+    
+        const userSaved = newUser.save(); //Este save va a guardar el usuario en mongoDB y ademas lo paso a la variable userSaved para luego usarlo.
+
+        res.json(userSaved); //Respondo a los datos con un json
+
+    
+   
+};
+
+
+2 // AL REGISTRO BÁSICO LE AGREGO ASYNC AWAIT PORQUE NO ES SINCRÓNICA LA CONSULTA A LA BASE DE DATOS.
+
+
+const User = require('../models/user.model.js');
+
+const register = async (req, res) => { //Le agrege a la funcion async porque necesito el await para guardar en mongoDB.
+
+    const { email, password, username } = req.body; //Extraigo los datos que necesito del body.
+    console.log( email, password, username );
+
+        const newUser = new User({
+            username,
+            email,
+            password
+        })
+    
+        const userSaved = await newUser.save(); //Este save va a guardar el usuario en mongoDB. 
+
+        res.json(userSaved); //Acá respondo con los datos completos del usuario.
+       
+  
+};
+
+3 // COMO EL REGISTRO EN LA BASE DE DATOS PUEDE FALLAR, NECESITO MANEJAR LOS ERRORES CON UN TRY Y CATCH.
+
+
+const User = require('../models/user.model.js');
+
+const register = async (req, res) => { //Le agrege a la funcion async porque necesito el await para guardar en mongoDB. Ademas lo que es asincrono lo guardo en un try/catch.
+
+    const { email, password, username } = req.body; //Extraigo los datos que necesito del body.
+    console.log( email, password, username );
+
+    try {
+        const newUser = new User({
+            username,
+            email,
+            password
+        })
+    
+        const userSaved = await newUser.save(); //Este save va a guardar el usuario en mongoDB. Ademas se guarda en userSaved para tener los datos del id y de la fecha de creación.
+
+        res.json(userSaved); //Acá respondo con los datos completos del usuario.
+
+    } catch {
+        console.log(error);
+    }
+    
+   
+};
+
+
+4 AHORA VOY A ENCRIPTAR EL PASSWORD Y DEVOLVER AL FRONT SOLO LO NECESARIO.
+
+
+const User = require('../models/user.model.js');
+const bcrypt = require('bcryptjs');
+
+const register = async (req, res) => { //Le agrege a la funcion async porque necesito el await para guardar en mongoDB. Ademas lo que es asincrono lo guardo en un try/catch.
+
+    const { email, password, username } = req.body; //Extraigo los datos que necesito del body.
+    console.log( email, password, username );
+
+    const passwordHash = await bcrypt.hash(password, 10); //Encripto la contraseña y la guardo en la variabla hash
+
+    try {
+        const newUser = new User({
+            username,
+            email,
+            passwor: passwordHash //Guardo la contraseña como hash.
+        })
+    
+        const userSaved = await newUser.save(); //Este save va a guardar el usuario en mongoDB. Ademas se guarda en userSaved para tener los datos del id y de la fecha de creación.
+
+        res.json({ //Solo respondo con los datos que necesita el front, no el password.
+            id: userSaved._id,
+            username: userSaved.username,
+            email: userSaved.email,
+            createdAt: userSaved.createdAt,
+            updatedAt: userSaved.updatedAt
+        });
+
+    } catch {
+        console.log(error);
+    }
+    
+};
+
+5 AHORA VOY A UTILIZAR JSONWEBTOKEN Y GENERAR UN TOKEN, Y EN ESTE CASO DEVOLVERLO AL FRONT.
+    VER QUE LA SECRET KEY (SECRET123) EN REALIDAD DEBERÍA UTILIZAR UNA VARIABLE DE ENTORNO PARA SUMAR SEGURIDAD.
+
+
+
+const User = require('../models/user.model.js');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const register = async (req, res) => { //Le agrege a la funcion async porque necesito el await para guardar en mongoDB. Ademas lo que es asincrono lo guardo en un try/catch.
+
+    const { email, password, username } = req.body; //Extraigo los datos que necesito del body.
+    console.log( email, password, username );
+
+    const passwordHash = await bcrypt.hash(password, 10); //Encripto la contraseña y la guardo en la variabla hash
+
+    try {
+        const newUser = new User({
+            username,
+            email,
+            passwor: passwordHash //Guardo la contraseña como hash.
+        })
+    
+        const userSaved = await newUser.save(); //Este save va a guardar el usuario en mongoDB. Ademas se guarda en userSaved para tener los datos del id y de la fecha de creación.
+
+        jwt.sign({
+            id: userSaved._id
+        },
+        "secret123" //Esta es una variable del servidor para firmar el token, deberíamos guardarla de forma segura como variable de entorno.
+        ,{
+            expiresIn: "1h"
+        },
+        (err, token) => {
+            if (err) { 
+                console.log(`Error en generación de token: ${err}`)
+            } else {
+                res.json({ token });
+            }
+        })
+
+    //Los datos de usuario que estaba enviando ya no son necesarios.
+
+    } catch {
+        console.log(error);
+    }
+    
+};
+
+6  AHORA VOY A UTILIZAR EXPRESS PARA ENVIAR EL TOKEN COMO COOKIE Y SOLO UN MENSAJE AL FRONT.
+
+
+
+const User = require('../models/user.model.js');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const register = async (req, res) => { //Le agrege a la funcion async porque necesito el await para guardar en mongoDB. Ademas lo que es asincrono lo guardo en un try/catch.
+
+    const { email, password, username } = req.body; //Extraigo los datos que necesito del body.
+    console.log( email, password, username );
+
+    const passwordHash = await bcrypt.hash(password, 10); //Encripto la contraseña y la guardo en la variabla hash
+
+    try {
+        const newUser = new User({
+            username,
+            email,
+            passwor: passwordHash //Guardo la contraseña como hash.
+        })
+    
+        const userSaved = await newUser.save(); //Este save va a guardar el usuario en mongoDB. Ademas se guarda en userSaved para tener los datos del id y de la fecha de creación.
+
+        jwt.sign({
+            id: userSaved._id
+        },
+        "secret123" //Esta es una variable del servidor para firmar el token, deberíamos guardarla de forma segura como variable de entorno.
+        ,{
+            expiresIn: "1h"
+        },
+        (err, token) => {
+            if (err) { 
+                console.log(`Error en generación de token: ${err}`)
+            } else {
+                //res.json({ token });
+                res.cookie('token', token) //Estoy guardando una cookie con nombre 'token' y el valor va a ser token. Esto solo crea la cookie, pero debo dar una respuesta.
+                res.json({
+                    message: 'Usuario creado satisfactoriamente' //Ahora si puedo crear dos res, porque una es de cookie y otra del mensaje.
+                })
+            }
+        })
+
+        //Solo respondo con los datos que necesita el front, no el password.
+        /* res.json({ 
+            id: userSaved._id,
+            username: userSaved.username,
+            email: userSaved.email,
+            createdAt: userSaved.createdAt,
+            updatedAt: userSaved.updatedAt
+        }); */
+
+    } catch {
+        console.log(error);
+    }
+    
+};
+
+

@@ -1,0 +1,80 @@
+1:57
+
+CREACIÓN DEL CLIENTE CON React
+
+    * Cosas a instalar:
+        - vite: Framework para crear forntend con react.
+        - tailwind: Framework de css.
+        - react router dom: Para simular el enrutado  desde el frontend.
+        - react hook form: forma eficiente de crear y manejaar formularios.
+
+    1- Vamos autilizar vite para nuestro proyecto, para crear el frontend con react.
+        a- Abrir el terminal en la carpeta inicial de mi proyecto. 
+        b- Ingresar: "npm create vite". (Es necesario instalar vite, pero si no esta instalado se pide cuando ingresamos npm create vite)
+            * nombre del proyecto: (En este caso: client).
+            * select a framework: (En este cso React).
+            * select a variant: (En este caso javaScript).
+        c- Ahora nos va a pedir hacer lo siguiente:
+            * Ingresar a la carpeta client, ejecutar npm install y ejecutar npm run dev. (Tener un terminal para el front y otro para el back).
+            Esto nos crea una carpeta client con todo lo necesario para utilizar react. Además, si ingreso en el ip y puerto que tengo, tengo la aplicación de ejemplo para utilizar. (En este caso: http://localhost:5173/).
+        d- Eliminar aplicación de ejemplo: 
+                entrar a ...client/App.js y borrar la aplicación de ejemplo.
+                eliminar ...client/App.css ya que no la voy a importar.
+                entrar a ...client/index.css y borrar todo lo que tiene adentro.
+        e- FRAMEWORKS A utilizar    
+            * Tailwind - Primero vamos a utilizar el framework Tailwindcss, pero debemos entrar a la web para instalar el especifico para vite.
+                **Ingresar a la web, get started, en la seccion installation entrar en Framework Guides y elegir vite.
+                    *no vamos a necesitar crear el proyecto, sino que lo vamos a usar para la instalación de modulos (Install taildwind CSS).
+                    * en la consola del front instalar los modulos tailwindcss postcss y autoprefixer: npm install -D tailwindcss postcss autoprefixer
+                ** Iniciar mi proyecto con: npx tailwindcss init -p. Esto va a crear las carpetas tailwind.config.js y postcss.config.js.
+                    * en tailwind.config.js hay que actualizar el campo content con lo que muestra la web.
+                        Esto es para que cualquier archivo que este en la carpete src tenga las clases de tailwind.
+                ** Añadir las clases en index.css que aparecen en la web.
+            *Instalar la extension tailwindcss para visual studio code.
+                ** En la pagina de tailwind -> get started -> solapa Framework Guides y seguir los pasos para vite.
+                ** El primer paso es crear el proyecto pero ya lo hice. Seguir con la instalacion de tailwind postcss y autoprefixer y todo lo sucesivo.
+        f- paquete para manejar el enrutamiento entre paginas (REACT ROUTER DOM)
+                react-router-dom es una biblioteca que permite la navegación entre diferentes componentes en una aplicación React sin recargar la página. Esta biblioteca es muy útil para crear aplicaciones de una sola página (SPA, por sus siglas en inglés) que tienen múltiples vistas.
+            * Instalar: react-router-dom
+            * Configurar react-router-dom: Desde app.jsx
+            * Creacion de conjunto de paginas básicas: este es el basico de las paginas y subpaginas que se encuentran en mi task manager.  
+            -----------------------------------------------------------------------
+                import {BrowserRouter, Routes, Route} from 'react-router-dom';
+
+                import RegisterPage from './pages/RegisterPage';
+                import LoginPage from './pages/LoginPage';
+
+                function App() {
+                return (
+                    <BrowserRouter>
+                    <Routes>
+                        <Route path='/' element={<h1>Home Page</h1>}></Route>
+                        <Route path='/login' element={<LoginPage/>}></Route>
+                        <Route path='/register' element={<RegisterPage/>}></Route>
+                        <Route path='/tasks' element={<h1>Tasks Page</h1>}></Route>
+                        <Route path='/add-task' element={<h1>New Task Page</h1>}></Route>
+                        <Route path='/tasks/:id' element={<h1>Update Task Page</h1>}></Route>
+                        <Route path='/profile' element={<h1>Profile Page</h1>}></Route>
+                    </Routes>
+                    </BrowserRouter>
+                )
+                }
+
+                export default App
+            ----------------------------------------------------------------------
+
+REGISTRO DE USUARIO
+
+    Creo las siguientes carpetas:
+    
+    - src   - pages         -> Las paginas van a hacer referencia a todo una pagina.
+            - components    -> Los componentes van a hacer referencia solamente a un componente de la pagina.
+            - context       ->
+
+    FORMULARIO CON MODULO REACT HOOK FORMULARIO
+    
+    *Utilizo el módulo react hook form: react-hook-form es una biblioteca de manejo de formularios en React que proporciona una forma eficiente y declarativa de crear y gestionar formularios en tus aplicaciones React. Es especialmente popular debido a su rendimiento y la simplicidad que ofrece
+
+
+
+        

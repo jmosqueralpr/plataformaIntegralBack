@@ -1,0 +1,27 @@
+# Node.js dependencies
+node_modules/
+
+# Log files
+npm-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# Build output
+dist/
+build/
+
+# Coverage directory
+coverage/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+
+

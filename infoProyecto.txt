@@ -1,0 +1,134 @@
+Se creará una aplicación Web para un task manager con stack MERN. con cookies y CRUD.
+https://www.youtube.com/watch?v=NmkY4JgS21A&ab_channel=FaztCode
+
+Backend
+
+    1- En carpeta raiz inicializar el backend npm init -y
+    2- Instalar las dependencias:
+        - npm install express
+        - npm install nodemon -D : Instalarlo para el desarrollo para no tener que lanzar la aplicacion a cada rato y que tome las actualizacioens de codigo automáticamente.
+            Agregar en el package-json, en scripts: "dev": "nodemon src/index.js"
+        - npm install morgan:  para ver las peticiones que llegan.
+        -npm install mongoose: para manejar la base de datos de mongodb, conectarse a mongo y modelar los datos.
+            ** Recordar que tengo que tener instalado mongodb y si ya tengo base de datos, la base de datos armada.
+        -npm install bcryptjs: Para encriptar contraseñas.
+        -npm install cookie-parser: Para poder ver las cookies, para poder decifrar las cookies que llegan con el get (Las cookies desde el front, van junto con el header).
+
+        -npm install zod: Para la validación final de datos.
+    3- En src crear las siguientes carpetas:
+        src - routes : Para las rutas.
+            - controllers : Para crear funciones que se van a ejecutar cuando visitemos una url. *si se visita la url login, el código que se va a ejecutar está en controllers.
+            - models: Para guardar los modelos de datos de nuestra base de datos. Para mongo.
+            - middlewares: En este caso los middlewares nos van a decir que rutas estan protegidas por usuarios autenticados.
+            - schemas: En este caso para hacer algunas validaciones. En este caso se llama asi porque vamos a usar una biblioteca que se llama sot que nos permique crear schemas (No para base de datos) sino que cuando nos llegan datos los validamos antes de procesarlos.
+            - libs: código que vamos a importar varias veces, por ejemplo una función para generar tokens.
+    4- En src vamos a crear los siguientes archivos:
+        src - db.js: que va a ser nuestra base de datos
+            - config.js: que nos va a servir para crear configuraciones que el resto de archivos va a poder importar. Son configuraciones globales para todo el proyecto.
+            - index.js: El archivo que va a crear el arranque de la aplicación. app.js va a ser el archivo de inicio pero index.js va a iniciar la aplicación.
+
+
+    5-Crear el servidor, basico básico.
+    6- Conectarse a la base de datos de mongodb (Con mongoose).
+        Crear el model y realizar la conexión.
+
+REGISTRO DE USUARIO
+
+Instalar mongoDB for vsCode (También se puede usar compass)  y como esta en la misma PC, conectarse a http://localhost para acceder a la base de datos de mongo db.
+
+    * Para hacer el registro del usuario necesito:
+        1 - Conectarme a la base de datos.
+        2 - Un model para ver como es la estructura del dato que voy a guardar. (En este caso creo el model y lo exporto).
+        3 - La función de registro que guarde el dato en mongo.
+
+39:46
+
+CREAR TOKEN Y CIFRAR LA CONTRASEÑA
+
+    - Primero se necesita cifrar la contraseña, para eso utilizamos el módulo bcrypt, sin embargo, desde el front se van a hacer mas peticiones, por lo tanto necesito un token que indique que el usuario ya se había logueado, para eso se utiliza el módulo jsonwebtoken.
+
+        modulos: bcryptjs y jsonwebtoken.
+
+        Creo un token con: 
+
+        jwt.sign({
+            id: userSaved._id
+        },
+        "secret123" //Esta es una variable del servidor para firmar el token, deberíamos guardarla de forma segura como variable de entorno.
+        ,{
+            expiresIn: "1h"
+        },
+        (err, token) => {
+            if (err) { 
+                console.log(`Error en generación de token: ${err}`)
+            } else {
+                res.json({ token });
+            }
+        })
+
+        En este caso estoy devolviendo el token, pero lo que necesito es utilizar cookies.
+
+
+
+CREACION DE LOGIN (55:02)
+
+    Creamos la ruta login en la cual,
+        - verifico el usuario con el metodo findOne.
+        - Verifico que el password del usuario encontrado sea el correcto.
+        - Envío un token para que pueda mantenerse en la pagina.
+
+    Además creo un logout.
+
+HACER RUTAS PROTEGIDAS (01:02:00) (MEDIANTE FUNCIONES MIDDLEWARE)
+
+    Vamos a crear rutas que protejan a otras rutas del backend. Vamos a crear una función que revise que el usuario está autenticado o no.
+    para eso voy a crar la ruta get /profile
+    
+    VOY A VALIDAR EL TOKEN EN LOS MIDDLEWARE, PORQUE UN MIDDLEWARE ES UNA FUNCIÓN QUE LLEGA ANTES QUE UNA RUTA.
+
+    La función en un middleware tiene la estructura: const funcion => (req, res, next) => {} porque hay otra funcion a ejecutar despues.
+
+    ***CADA RUTA QUE QUIERO PROTEGER, LE PONGO EL authRequired antes de la funcion y automáticamente la ruta queda protegida.
+        Ejemplo: router.post("/profile", authRequired, profile);
+            *Recordar qeu authRequired verifica el token y luego deja avanzar a la función profile que es del tipo (req, res) =>{ ... }
+    
+    01:18:00
+
+    CRUD de tareas.
+
+    Se va a crear un CRUD para manejo de tareas. Para eso voy a crear de forma modular todos los archivos. por ejemplo se va a crar en routes el archivo task.routes.js y en la carpeta controllers task.controllers.js.
+
+            //CRUD
+            //Obtener varias tareas.
+            router.get('/task', authRequired, );
+            //Obtener una tarea.
+            router.get('/task/:id', authRequired, ); //Voy a recibir params desde el front (id)
+            //Crear una tarea
+            router.post('/task', authRequired, );
+            //Eliminar una tarea
+            router.delete('/task/:id', authRequired, );
+            //Modificar una tarea
+            router.put('/task/;id', authRequired, );
+
+
+
+VALIDACIÓN DE DATOS EN GENERAL 1:40;00
+
+Cada vez que llega un dato al backend hay que validarlo.
+
+    BIBLIOTECA PARA VALIDAR DATOS
+    
+        * express-validator: 
+        * joi: 
+        * zod: Nos permite crear un schema y cuando llegan los datos se comparen con ese esquema. Nos permite determinar si los datos que tienen que llegar son objetos de determinada forma, si necesitamos un mínimo o un máximo, si es un correo, si son contraseñas, etc. (Suele utilizarse con TypeScrypt pero es posible utilizarlo con javaScript)
+
+        INSTALO zod para la validación y valido mediante el archivo auth.schema.js en la carpeta schemas.
+            zod nos sirve para validar por ejemplo la creación de un login, para que este login cumpla con ciertos requisitos.
+                1 - Creo un schema. (auth.schema.js)
+                2 - Creo un middleware para que se valide antes de nada. valido el schema con el método parse.
+                3 - En las rutas, antes de iniciar el (req, res) voy a validar la ruta contrastandola al schema.
+                4 - Ahora que ya hice esto, cuando haga una peticion que involucre zod, zod me va a responder un objeto con todos los errores encontrados, no solo el primero que se le cruza.
+
+-------------FINALIZACION DEL BACKEND BÁSICO --------------------------------------
+
+CONFIGURACION DEL CLIENTE (1:57:00)
