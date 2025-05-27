@@ -1,0 +1,27 @@
+
+services:
+  backend:
+    build: .                       # Usa el Dockerfile que ya creaste
+    container_name: backend-plataformaIntegral
+    ports:
+      - "1857:3000"                # Externo:Interno
+    restart: unless-stopped        # Reinicia a menos que lo detengas manualmente
+    depends_on:
+      - mongo                      # Espera que mongo esté listo
+    env_file:
+      - .env # Para cargar el archivo de variables de entorno.
+    volumes:
+      - .:/app                     # Monta tu código local en el contenedor (opcional en dev)
+    command: npm start             # Asegura que use el script de inicio
+
+  mongo:
+    image: mongo:6
+    container_name: mongo-plataformaIntegral
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db        # Persistencia para Mongo
+
+volumes:
+  mongo_data:                      # Volumen para guardar datos de Mongo

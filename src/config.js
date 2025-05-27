@@ -5,7 +5,7 @@ const PORT = '3000';
 /* URL BASE FOR ROUTES */
 const BASE_URL = '';
 /* URL ORIGIN FOR URL*/
-const DB_URL = 'mongodb://localhost/merndb';
+const DB_URL = process.env.MONGO_URL || 'mongodb://localhost/merndb'; /* Para usar la variable de entorno en docker y fuera de docker la variable que fijo ahi */
 /* URL ORIGIN FRONTEND FOR CORS */
 const ORIGIN_URL = 'http://localhost:5173';
 
