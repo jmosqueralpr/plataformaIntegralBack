@@ -11,7 +11,7 @@ services:
     env_file:
       - .env # Para cargar el archivo de variables de entorno.
     volumes:
-      - .:/app                     # Monta tu código local en el contenedor (opcional en dev)
+      - .:/appPlataformaIntegral                     # Monta tu código local en el contenedor (opcional en dev)
     command: npm start             # Asegura que use el script de inicio
 
   mongo:
