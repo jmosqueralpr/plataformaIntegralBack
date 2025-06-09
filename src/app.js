@@ -1,4 +1,5 @@
 const express = require('express'); //Importo
+const path = require('path');
 const morgan = require('morgan');
 const cookieParser =  require('cookie-parser');
 const cors = require('cors'); // Importo cors
@@ -14,8 +15,11 @@ const telegramRoutes = require('./routes/telegram.routes.js');
 /* Config */
 const { ORIGIN_URL } = require('./config.js');
 
+const frontEndPath = path.join(__dirname, '../../plaltaformaIntegralFront/dist');
+
 
 const app = express(); //Inicializo
+
 
 /* // Middleware de CORS
 app.use(cors({
@@ -28,9 +32,22 @@ app.use(cors({
 //app.use(cors()); //Con esta configuración cors anduvo bien, pero con problemas con los GET.
 
 app.use(cors({
-  origin: ORIGIN_URL, // Origen del frontend
-  credentials: true, // Permite el uso de cookies
+  origin: [
+    'http://localhost:5173', // Para acceso ejecutando vite.
+    'http://190.13.215.102:5500', //Para acceso instalando el servidor en la red de idm
+    'http://190.210.40.127:5500', //Para acceso instalando el servidor en la red de GBA.
+    'http://localhost:4173',
+    'http://localhost:5500', //Para acceso local sirviendo el front de forma local.
+    'https://plataformaintegral.netlify.app', // Producción
+  ],
+  credentials: true, //Con esto acepto las credenciales del token.
 }));
+/* 
+app.use(cors({
+  origin: '*', // Acepta todos los orígenes
+})); */
+
+
 
 app.use(morgan('dev'));  //Uso morgan en el modo dev.
 
@@ -49,5 +66,11 @@ app.use('/api', solutionRoutes); //Hago que las rutas de solution se accedan atn
 app.use('/api', userConfigurationRoutes); //Hago que las rutas userConfiguration se accedan anteponiendo /api.
 
 app.use('/api', telegramRoutes); //Rutas de telegram para enviar un mensaje desde la web.
+
+app. use(express.static(frontEndPath));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontEndPath, 'index.html'));
+});
 
 module.exports = app;
