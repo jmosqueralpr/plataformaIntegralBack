@@ -31,7 +31,8 @@ function mostrarMenu(chatId) {
   return bot.sendMessage(chatId, '¡Hola! ¿Qué te gustaría hacer?', {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📥 Registrar ChatId (notificaciones)', callback_data: 'registrar_chatid' }],
+        [{ text: '📥 Registrar ChatId si sos nuevo usuario', callback_data: 'registrar_chatid' }],
+        [{ text: '📋 Ver enlace a la plataforma web', callback_data: 'enlace_web' }],
         [{ text: '📋 Ver mis tareas', callback_data: 'ver_tareas' }],
         [{ text: '📋 Crear nueva tarea', callback_data: 'crear_tarea' }],
         [{ text: '📋 Ver vencimientos', callback_data: 'ver_vencimientos' }],
@@ -171,28 +172,62 @@ bot.on('message', async (msg) => {
 
 
 
-  /* BUSQUEDA DE SOLUCIONES TÉCNICAS */
-  if (session.awaitingSearchQuery) {
-    const results = await Solution.find({ title: { $regex: text, $options: 'i' } }).limit(10);
+  /* BÚSQUEDA DE SOLUCIONES TÉCNICAS */
+      if (session.awaitingSearchQuery) {
+        const words = text
+          .split(' ')
+          .map(word => word.trim())
+          .filter(word => word.length > 0);
 
-    if (results.length === 0) {
-      session.awaitingSearchQuery = false;
-      userSessions.set(chatId, session);
-      return await bot.sendMessage(chatId, '❌ No se encontraron soluciones técnicas con ese término.');
-    } else {
-      session.searchResults = results;
-      session.awaitingSearchQuery = false;
-      session.awaitingSelection = true;
-      userSessions.set(chatId, session);
+        if (words.length === 0) {
+          session.awaitingSearchQuery = false;
+          userSessions.set(chatId, session);
+          return await bot.sendMessage(chatId, '❌ Por favor, ingresá al menos una palabra válida para buscar. (La busqueda se realizará en cualquiera de los siguientes campos de la solución técnica: Titulo, Contenido, Notas y referencia');
+        }
 
-      const buttons = results.map((s, i) => [{ text: s.title, callback_data: `select_solution_${i}` }]);
+        // Lista de campos donde buscar (igual que en la web)
+        const searchFields = ['title', 'content', 'document_ref', 'notes'];
 
-      await bot.sendMessage(chatId, '📄 Seleccioná una solución técnica:', {
-        reply_markup: { inline_keyboard: buttons }
-      });
-    }
-    return;
-  }
+        // Creamos criterios de búsqueda que exigen que todas las palabras estén en al menos uno de los campos
+        const searchCriteria = words.map(word => ({
+          $or: searchFields.map(field => ({
+            [field]: { $regex: word, $options: 'i' }
+          }))
+        }));
+
+        try {
+          const results = await Solution.find({ $and: searchCriteria }).limit(10);
+
+          if (results.length === 0) {
+            session.awaitingSearchQuery = false;
+            userSessions.set(chatId, session);
+            return await bot.sendMessage(chatId, '❌ No se encontraron soluciones técnicas con esos términos.');
+          }
+
+          session.searchResults = results;
+          session.awaitingSearchQuery = false;
+          session.awaitingSelection = true;
+          userSessions.set(chatId, session);
+
+          const buttons = results.map((s, i) => [{
+            text: s.title,
+            callback_data: `select_solution_${i}`
+          }]);
+
+          await bot.sendMessage(chatId, '📄 Seleccioná una solución técnica:', {
+            reply_markup: { inline_keyboard: buttons }
+          });
+
+        } catch (error) {
+          console.error('Error en búsqueda de Telegram:', error);
+          session.awaitingSearchQuery = false;
+          userSessions.set(chatId, session);
+          return await bot.sendMessage(chatId, '⚠️ Ocurrió un error al buscar. Intentá de nuevo.');
+        }
+
+        return;
+      }
+
 
   
 
@@ -218,6 +253,10 @@ bot.on('callback_query', async (query) => {
   if (data === 'registrar_chatid') {
     pendingUsernames.set(chatId, { step: 'username' });
     return bot.sendMessage(chatId, '✏️ Escribí tu *usuario* para registrar el chatId:', { parse_mode: 'Markdown' });
+  }
+
+  if (data === 'enlace_web') {
+    return bot.sendMessage(chatId, '✏️ El enlace a la web (Para navegador web en tu PC): http://190.210.40.127:55000');
   }
 
   if (data.startsWith('ver_tarea_')) {

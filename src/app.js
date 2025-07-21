@@ -34,10 +34,10 @@ app.use(cors({
 app.use(cors({
   origin: [
     'http://localhost:5173', // Para acceso ejecutando vite.
-    'http://190.13.215.102:5500', //Para acceso instalando el servidor en la red de idm
-    'http://190.210.40.127:5500', //Para acceso instalando el servidor en la red de GBA.
+    'http://190.13.215.102:55000', //Para acceso instalando el servidor en la red de idm
+    'http://190.210.40.127:55000', //Para acceso instalando el servidor en la red de GBA.
     'http://localhost:4173',
-    'http://localhost:5500', //Para acceso local sirviendo el front de forma local.
+    'http://localhost:55000', //Para acceso local sirviendo el front de forma local.
     'https://plataformaintegral.netlify.app', // Producción
   ],
   credentials: true, //Con esto acepto las credenciales del token.

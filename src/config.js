@@ -1,7 +1,7 @@
 /* SECRET KEY FOR TOKEN */
 const TOKEN_SECRET = 'some secret key';
 /* SERVER PORT */
-const PORT = '5500';
+const PORT = '55000';
 /* URL BASE FOR ROUTES */
 const BASE_URL = '';
 /* URL ORIGIN FOR URL*/

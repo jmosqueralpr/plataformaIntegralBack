@@ -28,7 +28,11 @@ const getSolution = async (req, res) => {
 // Búsqueda de una solución.
 const searchSolutions = async (req, res) => {
     const { query, field } = req.query;
-    const words = query.split(' ').map(word => word.trim());
+    const words = query
+        .split(' ') //Divido cuando hay espacios.
+        .map(word => word.trim())   // limpia espacios de cada palabra
+        .filter(word => word.length > 0); // Elimina los campos vacíos (Palabras vacías)
+
   
     // Si `field` está definido y es "all", buscamos en todos los campos
     const allFields = ['title', 'content', 'document_ref', 'notes'];
