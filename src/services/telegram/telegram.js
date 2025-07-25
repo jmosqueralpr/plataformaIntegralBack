@@ -17,7 +17,7 @@ const { getStatus } = require('../../utils/tcpMonitor');
 
 const ENV = process.env.NODE_ENV || 'development';
 
-const token =
+const token = /* Token para produccion y token para desarrollo, para que no haya conflicto entre los dos */
   ENV === 'production'
     ? process.env.BOT_TOKEN_PROD
     : process.env.BOT_TOKEN_DEV;
@@ -142,6 +142,7 @@ bot.on('message', async (msg) => {
         await task.save();
 
         await bot.sendMessage(chatId, `✅ Tarea creada:\n📌 *${task.title}*\n📝 ${task.description}`, { parse_mode: 'Markdown' });
+        await bot.sendMessage(chatId, `ℹ️ Ingresar a la plataforma de gestion para cargar los datos restantes de la tarea` );
       } catch (err) {
         console.error(err);
         await bot.sendMessage(chatId, '❌ Error al crear la tarea.');
@@ -185,6 +186,7 @@ bot.on('message', async (msg) => {
 
         await expiration.save();
         await bot.sendMessage(chatId, `✅ Vencimiento creado:\n📌 *${expiration.title}*\n📅 ${expiration.expirationDate}\n⏰ 10:00`, { parse_mode: 'Markdown' });
+        await bot.sendMessage(chatId, `ℹ️ Si deseas cambiar los datos del vencimiento, puedes hacerlo mediante la plataforma de gestion.`, { parse_mode: 'Markdown' });
       } catch (err) {
         console.error(err);
         await bot.sendMessage(chatId, '❌ Error al crear el vencimiento.');
@@ -300,7 +302,8 @@ bot.on('callback_query', async (query) => {
     const tarea = session?.tareas?.[index];
   
     if (!tarea) return bot.sendMessage(chatId, '❌ No se pudo encontrar esa tarea.');
-  
+    
+    
     return bot.sendMessage(chatId,
       `📌 *${tarea.title}*\n📝 ${tarea.description || 'Sin descripción'}\n🔥 *Importancia:* ${tarea.importance}`,
       { parse_mode: 'Markdown' }
@@ -472,7 +475,7 @@ bot.on('callback_query', async (query) => {
         botones.push([{ text: '📂 Filtrar por importancia (mostrar todo)', callback_data: 'filtrar_tareas' }]);
       }
   
-      return bot.sendMessage(chatId, '📝 Tus tareas (máx. 10):', {
+      return bot.sendMessage(chatId, '📝 Tus tareas estan ordenadadas por importancia y vencimiento (máx. 10), para ver la totalidad de las tareas ingresar en la plataforma de gestion DYB:', {
         reply_markup: { inline_keyboard: botones }
       });
   
