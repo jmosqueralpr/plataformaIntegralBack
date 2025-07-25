@@ -2,9 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const cron = require('node-cron');
-
-const token = '7303678646:AAGpwKxDpG9fskEEYDfB1fhDF-Afvp2i6h8';
-const bot = new TelegramBot(token, { polling: true });
+require('dotenv').config(); // Cargar el archivo .env
 
 const User = require('../../models/user.model');
 const Expiration = require('../../models/expiration.model');
@@ -15,6 +13,26 @@ const { getStatus } = require('../../utils/tcpMonitor');
 
 /* HANDLERS */
 
+/* Token Handler */
+
+const ENV = process.env.NODE_ENV || 'development';
+
+const token =
+  ENV === 'production'
+    ? process.env.BOT_TOKEN_PROD
+    : process.env.BOT_TOKEN_DEV;
+
+/* const token = '7303678646:AAGpwKxDpG9fskEEYDfB1fhDF-Afvp2i6h8';  */
+
+const bot = new TelegramBot(token, { polling: true });
+
+console.log("Token:");
+
+console.log(token);
+
+console.log(ENV);
+
+console.log(process.env.NODE_ENV);
 
 /* JOBS */
 const initializeExpirationReminder = require('./jobs/expirationsReminder.jobs');
@@ -49,8 +67,15 @@ function mostrarMenu(chatId) {
 
 /* MENSAJES DE TEXTO GENERALES */
 bot.on('message', async (msg) => {
-  const chatId = msg.chat.id;
-  const telegramId = msg.from.username;
+
+/* 1127001486; */
+
+  
+
+  console.log("Ingreso a message");
+
+  const chatId = msg.chat.id; //Aca registro cual es el chat id de quien me escribe
+  const telegramId = msg.from.username; //Aca el nombre de quien me escribe
   const text = msg.text?.trim();
   if (!text) return;
 
@@ -245,8 +270,18 @@ bot.on('callback_query', async (query) => {
   const chatId = query.message.chat.id;
   const data = query.data;
   const telegramUsername = query.from.username;
-
   const session = userSessions.get(chatId) || {};
+  
+
+  const user = await User.findOne({ telegramChatId: chatId });
+  if (!user) {
+    //Consulta si tengo registrado el chatId
+    bot.sendMessage(chatId, '❌ No estás registrado. Registrá tu chatId primero.');
+
+    // Iniciar registro automáticamente
+    pendingUsernames.set(chatId, { step: 'username' });
+    return bot.sendMessage(chatId, '✏️ Escribí tu *usuario* para registrar el chatId:', { parse_mode: 'Markdown' });
+  }
 
   if (data === 'mostrar_menu') return mostrarMenu(chatId);
 
@@ -454,7 +489,7 @@ bot.on('callback_query', async (query) => {
   }
 
   if (data === 'ver_perfil') {
-    return bot.sendMessage(chatId, `👤 Tu usuario de Telegram es: @${telegramUsername}`);
+    return bot.sendMessage(chatId, `👤 Tu usuario de Telegram es: @${telegramUsername} y tu chatId es: @${chatId}`);
   }
 });
 
