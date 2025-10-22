@@ -64,7 +64,7 @@ const login = async (req, res) => { //Le agrege a la funcion async porque necesi
 
     const { username, email, password } = req.body; //Extraigo los datos que necesito del body.
     console.log("Datsos básicos");
-    console.log( username, email, password);
+    console.log( username, email, password );
 
     try {
 

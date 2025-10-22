@@ -2,6 +2,7 @@ const express = require('express');
 const { authRequired } = require('../middlewares/validateToken.js');
 const { validateSchema } = require('../middlewares/validator.middleware.js');
 const { solutionSchema } = require('../schemas/solution.schema.js'); // Esquema de validación
+const { blockGuest } = require('../middlewares/guest.middleware.js');
 const {
     getSolution,
     getSolutions,
@@ -24,12 +25,12 @@ const router = express.Router();
 router.get('/search', authRequired, searchSolutions);
 
 // Crear una nueva solución - Ok
-router.post('/solutions', authRequired, validateSchema(solutionSchema), createSolution); // Aquí validamos autenticación y el esquema
+router.post('/solutions', authRequired, blockGuest, validateSchema(solutionSchema), createSolution); // Aquí validamos autenticación y el esquema
 
 // Eliminar una solución
-router.delete('/solutions/:id', authRequired, deleteSolution);
+router.delete('/solutions/:id', authRequired, blockGuest, deleteSolution);
 
 // Modificar una solución - Ok
-router.put('/solutions/:id', authRequired, updateSolution); // Aquí validamos el esquema
+router.put('/solutions/:id', authRequired, blockGuest, updateSolution); // Aquí validamos el esquema
 
 module.exports = router;
