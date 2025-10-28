@@ -1,5 +1,6 @@
 const express = require('express');
 const { authRequired } = require('../middlewares/validateToken.js');
+const { blockGuest } = require('../middlewares/guest.middleware.js');
 const {
   getExpirations,
   getExpiration,
@@ -15,9 +16,9 @@ const router = express.Router();
 
 router.get('/expirations', authRequired, getExpirations);
 router.get('/expiration/:id', authRequired, getExpiration);
-router.post('/expiration', authRequired, validateSchema(createExpirationSchema), createExpiration);
-router.delete('/expiration/:id', authRequired, deleteExpiration);
-router.put('/expiration/:id', authRequired, updateExpiration);
-router.patch('/expiration/:id', authRequired, updateExpiration);
+router.post('/expiration', authRequired, blockGuest, validateSchema(createExpirationSchema), createExpiration);
+router.delete('/expiration/:id', authRequired, blockGuest, deleteExpiration);
+router.put('/expiration/:id', authRequired, blockGuest, updateExpiration);
+router.patch('/expiration/:id', authRequired, blockGuest, updateExpiration);
 
 module.exports = router;
