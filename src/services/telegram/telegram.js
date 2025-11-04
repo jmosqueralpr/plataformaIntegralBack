@@ -354,7 +354,7 @@ bot.on('callback_query', async (query) => {
     const solution = session.searchResults?.[index];
 
     if (solution) {
-      await bot.sendMessage(chatId, `<b>${solution.title}</b>\n\n${solution.content}\nReferencia: ${solution.document_ref}`, { parse_mode: 'HTML' });
+      await bot.sendMessage(chatId, `<b>${solution.title}</b>\n\n${solution.content}</b>\nReferencia: ${solution.document_ref}`, { parse_mode: 'HTML' });
     } else {
       await bot.sendMessage(chatId, '❌ No se pudo recuperar la solución.');
     }
