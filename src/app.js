@@ -11,6 +11,7 @@ const expirationRoutes = require('./routes/expiration.routes.js');
 const userConfigurationRoutes = require('./routes/userConfiguration.routes.js');
 const solutionRoutes = require('./routes/solution.routes.js');
 const telegramRoutes = require('./routes/telegram.routes.js');
+const mge8Routes = require('./routes/mge8.routes.js');
 
 /* Config */
 const { ORIGIN_URL } = require('./config.js');
@@ -53,7 +54,7 @@ app.use(morgan('dev'));  //Uso morgan en el modo dev.
 
 app.use(cookieParser()); //Cada vez que se recibe una cookie, se convierte en un objeto json.
 
-app.use(express.json()); //Para que express pueda entender los datos json que enviamos en el body.
+app.use(express.json());  //Para que express pueda entender los datos json que enviamos en el body.
 
 app.use( '/api', authRoutes); //Uso las rutas de autentificación. Hago que todas las rutas de authRoutes se deban acceder agregando /api.
 
@@ -66,6 +67,8 @@ app.use('/api', solutionRoutes); //Hago que las rutas de solution se accedan atn
 app.use('/api', userConfigurationRoutes); //Hago que las rutas userConfiguration se accedan anteponiendo /api.
 
 app.use('/api', telegramRoutes); //Rutas de telegram para enviar un mensaje desde la web.
+
+app.use('/api', mge8Routes); //Rutas para cargar archivos de AIS y luego decodificarlos.
 
 app. use(express.static(frontEndPath));
 
