@@ -12,6 +12,9 @@ const userConfigurationRoutes = require('./routes/userConfiguration.routes.js');
 const solutionRoutes = require('./routes/solution.routes.js');
 const telegramRoutes = require('./routes/telegram.routes.js');
 const mge8Routes = require('./routes/mge8.routes.js');
+const baseRoutes = require('./routes/base.routes.js');
+const baseAnualRoutes = require('./routes/baseAnual.routes.js');
+const baseAnualSchema = require('./routes/baseEvento.routes.js');
 
 /* Config */
 const { ORIGIN_URL } = require('./config.js');
@@ -69,6 +72,14 @@ app.use('/api', userConfigurationRoutes); //Hago que las rutas userConfiguration
 app.use('/api', telegramRoutes); //Rutas de telegram para enviar un mensaje desde la web.
 
 app.use('/api', mge8Routes); //Rutas para cargar archivos de AIS y luego decodificarlos.
+
+app.use('/api', baseRoutes); //Rutas para cargar información estática de las bases
+
+app.use('/api', baseAnualRoutes); //Rutas para cargar información anual de las bases
+
+app.use('/api', baseEventoRoutes); //Rutas para cargar información de los eventos de las bases
+
+
 
 app. use(express.static(frontEndPath));
 
