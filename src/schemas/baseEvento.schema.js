@@ -17,9 +17,9 @@ const createEventoSchema = z.object({
     required_error: 'titulo_evento es requerido'
   }).min(1),
 
-  descripcion_evento: z.string({
-    required_error: 'descripcion_evento es requerida'
-  }).min(1)
+  descripcion_evento: z.string().optional(),
+
+  resolucion_evento: z.string().optional()
 });
 
 module.exports = {

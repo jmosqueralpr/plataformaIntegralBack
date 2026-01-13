@@ -30,8 +30,10 @@ Crear un registro anual:
 
 post a localhost:3000/api/base-anual
 
+Para la base de prueba creada: ID_DE_LA_BASE === 69666fa2cb7124f0a0733166
+
 {
-  "base_id": "ID_DE_LA_BASE",
+  "base_id": "69666fa2cb7124f0a0733166",
   "anio": 2025,
   "elementos_entregados": "- Antena VHF\n- Cable coaxial",
   "tareas_a_realizar": "- Ajustar potencia TX\n- Revisar conectores",

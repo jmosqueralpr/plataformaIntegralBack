@@ -23,7 +23,11 @@ const eventoSchema = new mongoose.Schema({
   },
   descripcion_evento: {
     type: String,
-    required: true
+    required: false
+  },
+  resolucion_evento: {
+    type: String,
+    required: false
   }
 }, {
   timestamps: true

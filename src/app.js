@@ -14,7 +14,7 @@ const telegramRoutes = require('./routes/telegram.routes.js');
 const mge8Routes = require('./routes/mge8.routes.js');
 const baseRoutes = require('./routes/base.routes.js');
 const baseAnualRoutes = require('./routes/baseAnual.routes.js');
-const baseAnualSchema = require('./routes/baseEvento.routes.js');
+const baseEventRoutes = require('./routes/baseEvento.routes.js');
 
 /* Config */
 const { ORIGIN_URL } = require('./config.js');
@@ -77,7 +77,7 @@ app.use('/api', baseRoutes); //Rutas para cargar información estática de las b
 
 app.use('/api', baseAnualRoutes); //Rutas para cargar información anual de las bases
 
-app.use('/api', baseEventoRoutes); //Rutas para cargar información de los eventos de las bases
+app.use('/api', baseEventRoutes); //Rutas para cargar información de los eventos de las bases
 
 
 
