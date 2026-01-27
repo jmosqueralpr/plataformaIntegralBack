@@ -40,6 +40,7 @@ app.use(cors({
     'http://localhost:5173', // Para acceso ejecutando vite.
     'http://190.13.215.102:55000', //Para acceso instalando el servidor en la red de idm
     'http://190.210.40.127:55000', //Para acceso instalando el servidor en la red de GBA.
+    'http://plataformadyb.ddns.net',
     'http://localhost:4173',
     'http://localhost:55000', //Para acceso local sirviendo el front de forma local.
     'https://plataformaintegral.netlify.app', // Producción
