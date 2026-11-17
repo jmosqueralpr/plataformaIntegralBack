@@ -1,79 +1,97 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
 const router = express.Router();
-const AisDecode  = require ("ggencoder").AisDecode; // 🔜 se usará luego
+const { decodeMGE8Lines } = require('./mge8Decoder');
 
-/**
- * 🔜 FUTURO:
- * - Parsear multipart AIVDM
- * - Decodificar con AisDecode
- * - Filtrar DAC/FI MGE8
- */
-function decodeMGE8Lines(lines) {
-  console.log('🧠 decodeMGE8Lines() llamado con líneas:');
-  console.log(lines);
+const maxFileSize = 25 * 1024 * 1024;
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: maxFileSize, files: 1 },
+});
 
-  // 🚧 MOCK TEMPORAL
-  // Esta función en el futuro devuelve datos reales
-  return {
-    "123456789": [
-      {
-        windDirection: 270,
-        windSpeed: 12.4,
-        longitude: -58.3816,
-        latitude: -34.6037
-      },
-      {
-        windDirection: 265,
-        windSpeed: 11.9,
-        longitude: -58.3820,
-        latitude: -34.6039
-      },
-      {
-        windDirection: 280,
-        windSpeed: 13.1,
-        longitude: -58.3805,
-        latitude: -34.6042
+const parseUpload = (req, res, next) => {
+  upload.single('file')(req, res, (error) => {
+    if (!error) return next();
+
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ message: 'El archivo supera el límite de 25 MB.' });
       }
-    ]
-  };
-}
-
-router.post('/decode-mge8', async (req, res) => {
-  try {
-    // 1️⃣ Leer input
-    const { lines } = req.body;
-
-    console.log('📥 Request /decode-mge8');
-
-    /* Prueba de decodificación con valor simulado */
-
-    const aux = '!AIVDM,1,1,1,B,8>h8nkP0Glr=<hFI0D6??wvlFR06EuOwgwl?wnSwe7wvlOw?sAwwnSGmwvh0,0*17';
-
-    const decMsg = new AisDecode (aux);
-    if (decMsg.valid) console.log ('%j', decMsg);
-    console.log("el mensaje decodificado");
-    console.log(decMsg);
-
-    
-    /* Fin de prueba de decodificación con valor simulado */
-
-    if (!Array.isArray(lines) || lines.length === 0) {
-      return res.status(400).json({
-        error: 'Input inválido: se esperaba un array de líneas AIS'
-      });
+      return res.status(400).json({ message: 'No se pudo leer el archivo TXT.' });
     }
 
-    // 2️⃣ Decodificar (mock hoy, real mañana)
-    const decoded = decodeMGE8Lines(lines);
+    return next(error);
+  });
+};
 
-    // 3️⃣ Responder
-    res.json(decoded);
+router.post('/decode-mge8', parseUpload, (req, res) => {
+  try {
+    let lines;
+    let fileName = null;
 
-  } catch (err) {
-    console.error('❌ ERROR EN decode-mge8:', err);
-    res.status(500).json({
-      error: 'Error interno en decodificación AIS'
+    if (req.file) {
+      if (path.extname(req.file.originalname).toLowerCase() !== '.txt') {
+        return res.status(400).json({ message: 'El archivo debe tener extensión .txt.' });
+      }
+
+      fileName = req.file.originalname;
+      const text = req.file.buffer.toString('utf8');
+      if (!text.trim()) {
+        return res.status(400).json({ message: 'El archivo TXT está vacío.' });
+      }
+      lines = text.split(/\r?\n/);
+    } else if (Array.isArray(req.body?.lines)) {
+      lines = req.body.lines;
+    } else {
+      return res.status(400).json({ message: 'Seleccioná un archivo TXT para analizar.' });
+    }
+
+    return res.json({
+      fileName,
+      ...decodeMGE8Lines(lines),
     });
+  } catch (error) {
+    console.error('Error al procesar archivo AIS:', error);
+    return res.status(500).json({ message: 'No se pudo procesar el archivo AIS.' });
+  }
+});
+
+router.post('/export-mge8-mmsi', parseUpload, (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Seleccioná un archivo TXT para exportar.' });
+    }
+    if (path.extname(req.file.originalname).toLowerCase() !== '.txt') {
+      return res.status(400).json({ message: 'El archivo debe tener extensión .txt.' });
+    }
+
+    const text = req.file.buffer.toString('utf8');
+    if (!text.trim()) {
+      return res.status(400).json({ message: 'El archivo TXT está vacío.' });
+    }
+
+    const requestedMmsi = String(req.body?.mmsi || '').trim();
+    if (!/^\d{1,9}$/.test(requestedMmsi)) {
+      return res.status(400).json({ message: 'El MMSI indicado no es válido.' });
+    }
+    const mmsi = requestedMmsi.padStart(9, '0');
+
+    const { stations } = decodeMGE8Lines(text.split(/\r?\n/), { includeRawMessages: true });
+    const station = stations.find((item) => item.mmsi === mmsi);
+    if (!station || station.rawMessages.length === 0) {
+      return res.status(404).json({ message: `No se encontraron mensajes Message 8 para el MMSI ${mmsi}.` });
+    }
+
+    const receivedLines = station.rawMessages
+      .flat()
+      .sort((left, right) => left.sourceLine - right.sourceLine)
+      .map((entry) => entry.line);
+
+    return res.type('text/plain').send(`${receivedLines.join('\r\n')}\r\n`);
+  } catch (error) {
+    console.error('Error al exportar mensajes AIS por MMSI:', error);
+    return res.status(500).json({ message: 'No se pudieron exportar los mensajes AIS.' });
   }
 });
 
