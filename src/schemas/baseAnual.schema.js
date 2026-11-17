@@ -11,9 +11,14 @@ const createBaseAnualSchema = z.object({
     required_error: 'anio es requerido'
   }).int().min(1900),
 
+  necesidades_campania: z.string().optional(),
+  a_enviar: z.string().optional(),
+  enviado: z.boolean().optional(),
+  tareas_ejecutadas: z.string().optional(),
+  tareas_pendientes: z.string().optional(),
+
   elementos_entregados: z.string().optional(),
   tareas_a_realizar: z.string().optional(),
-
   elementos_proxima_campania: z.string().optional(),
   tareas_proxima_campania: z.string().optional(),
 

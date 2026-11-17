@@ -13,13 +13,29 @@ const baseAnualSchema = new mongoose.Schema({
     required: true
   },
 
+  necesidades_campania: {
+    type: String
+  },
+  a_enviar: {
+    type: String
+  },
+  enviado: {
+    type: Boolean,
+    default: false
+  },
+  tareas_ejecutadas: {
+    type: String
+  },
+  tareas_pendientes: {
+    type: String
+  },
+
   elementos_entregados: {
     type: String
   },
   tareas_a_realizar: {
     type: String
   },
-
   elementos_proxima_campania: {
     type: String
   },
