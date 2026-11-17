@@ -22,7 +22,8 @@ const createExpiration = async (req, res) => {
       title,
       description,
       expirationDate,
-      expirationTime,
+      expirationTime = '10:00',
+      notify7DaysBefore = true,
       notify30DaysBefore = false,
       notify90DaysBefore = false,
       assignedTo
@@ -39,7 +40,8 @@ const createExpiration = async (req, res) => {
       title,
       description,
       expirationDate,
-      expirationTime,
+      expirationTime: expirationTime || '10:00',
+      notify7DaysBefore,
       notify30DaysBefore,
       notify90DaysBefore,
       assignedTo: assignedUsers
@@ -69,14 +71,31 @@ const getExpiration = async (req, res) => {
 // PUT o PATCH
 const updateExpiration = async (req, res) => {
   try {
-    const expiration = await Expiration.findByIdAndUpdate(req.params.id, req.body, {
-      new: true
-    });
-    if (!expiration)
+    const currentExpiration = await Expiration.findById(req.params.id);
+    if (!currentExpiration)
       return res.status(404).json({ message: 'Expiration not found' });
 
+    const changes = { ...req.body };
+    if (Object.prototype.hasOwnProperty.call(changes, 'expirationTime')) {
+      changes.expirationTime = changes.expirationTime || '10:00';
+    }
+    if (
+      Object.prototype.hasOwnProperty.call(changes, 'expirationDate') &&
+      changes.expirationDate !== currentExpiration.expirationDate
+    ) {
+      changes.notified = false;
+      changes.notified7DaysBefore = false;
+      changes.notified30DaysBefore = false;
+      changes.notified90DaysBefore = false;
+    }
+
+    const expiration = await Expiration.findByIdAndUpdate(req.params.id, changes, {
+      new: true,
+      runValidators: true
+    });
     res.json(expiration);
   } catch (error) {
+    console.error('Error updating expiration:', error);
     res.status(500).json({ message: 'Error updating expiration' });
   }
 };

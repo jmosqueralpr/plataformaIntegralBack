@@ -1,5 +1,28 @@
 const bot = require('../services/telegram/telegram'); // instancia del bot
 const User = require('../models/user.model'); // modelo del usuario
+const crypto = require('crypto');
+
+const createTelegramLinkCode = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    const code = crypto.randomBytes(10).toString('hex').toUpperCase();
+    user.telegramLinkTokenHash = crypto.createHash('sha256').update(code).digest('hex');
+    user.telegramLinkTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    return res.json({
+      code,
+      expiresAt: user.telegramLinkTokenExpiresAt
+    });
+  } catch (error) {
+    console.error('Error al generar código de vinculación de Telegram:', error);
+    return res.status(500).json({ message: 'No se pudo generar el código de vinculación.' });
+  }
+};
 
 const telegramURLResponse = async (req, res) => {
   console.log("Llegamos al controller");
@@ -31,7 +54,7 @@ const telegramURLResponse = async (req, res) => {
 
   try {
     if (userDestiny === 'all') {
-      const users = await User.find({ telegramChatId: { $exists: true, $ne: null } });
+      const users = await User.find({ telegramChatId: { $nin: [null, ''] } });
 
       if (!users.length) {
         return res.status(404).json({ message: 'No hay usuarios con chatId de Telegram' });
@@ -63,5 +86,6 @@ const telegramURLResponse = async (req, res) => {
 };
 
 module.exports = {
-  telegramURLResponse
+  telegramURLResponse,
+  createTelegramLinkCode
 };

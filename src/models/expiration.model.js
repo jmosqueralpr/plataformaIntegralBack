@@ -25,8 +25,12 @@ const expirationSchema = new mongoose.Schema({
   title: { type: String, required: true }, // Título obligatorio
   description: { type: String, required: false },
   expirationDate: { type: String }, // No es obligatorio
-  expirationTime: { type: String }, // No es obligatorio
-  notified: { type: Boolean, default: false },  
+  expirationTime: { type: String, default: '10:00' }, // hora local por defecto
+  notified: { type: Boolean, default: false },
+  notified30DaysBefore: { type: Boolean, default: false },
+  notified90DaysBefore: { type: Boolean, default: false },
+  notify7DaysBefore: { type: Boolean, default: true },
+  notified7DaysBefore: { type: Boolean, default: false },
   notify30DaysBefore: { type: Boolean, default: false },
   notify90DaysBefore: { type: Boolean, default: false },
   assignedTo: [{

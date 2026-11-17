@@ -8,6 +8,7 @@ const createExpirationSchema = z.object({
   expirationDate: z.string().optional(), // Fecha de expiración opcional
   expirationTime: z.string().optional(), // Hora de expiración opcional
   notified: z.boolean().optional(),
+  notify7DaysBefore: z.boolean().optional(),
   notify30DaysBefore: z.boolean().optional(), // Notificación 30 días antes (opcional)
   notify90DaysBefore: z.boolean().optional(), // Notificación 90 días antes (opcional)
   assignedTo: z

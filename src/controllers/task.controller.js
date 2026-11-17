@@ -130,7 +130,8 @@ const updateTask = async (req, res) => {
     console.log("Vista de Task a actualizar");
     console.log(req.body);
     const task = await Task.findByIdAndUpdate(req.params.id, req.body, {
-      new: true
+      new: true,
+      runValidators: true
     });
     
   

@@ -40,7 +40,16 @@ const userSchema = new mongoose.Schema({
   telegramId: { /* Para poder hacer login y usar la base de datos */
     type: String,
     unique: true,
-    sparse: true }
+    sparse: true
+  },
+  telegramLinkTokenHash: {
+    type: String,
+    select: false
+  },
+  telegramLinkTokenExpiresAt: {
+    type: Date,
+    select: false
+  }
 }, {
   timestamps: true
 });
