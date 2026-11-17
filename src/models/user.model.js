@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  avatar: {
+    type: String,
+    default: ''
+  },
   telegramChatId: { /* La id del chat para recibir notificaciones */
     type: String,
     unique: true,
