@@ -113,12 +113,54 @@ const deleteExpiration = async (req, res) => {
   }
 };
 
+// GET resumen de vencimientos para el dashboard (próximos y vencidos)
+const getExpirationSummary = async (req, res) => {
+  try {
+    const expirations = await Expiration.find({
+      assignedTo: req.user.username
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const sevenDaysLater = new Date(today);
+    sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
+
+    const vencidos = [];
+    const proximos = [];
+
+    expirations.forEach((exp) => {
+      const expDate = new Date(exp.expirationDate);
+      expDate.setHours(0, 0, 0, 0);
+
+      if (expDate < today) {
+        vencidos.push(exp);
+      } else if (expDate <= sevenDaysLater) {
+        proximos.push(exp);
+      }
+    });
+
+    // Ordenar por fecha
+    vencidos.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+    proximos.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+
+    res.json({
+      proximos: proximos.slice(0, 2),
+      vencidos: vencidos.slice(0, 2)
+    });
+  } catch (error) {
+    console.error('Error al obtener resumen de vencimientos:', error);
+    res.status(500).json({ message: 'Error al obtener resumen de vencimientos' });
+  }
+};
+
 module.exports = {
   getExpirations,
   getExpiration,
   createExpiration,
   updateExpiration,
-  deleteExpiration
+  deleteExpiration,
+  getExpirationSummary
 };
 
 

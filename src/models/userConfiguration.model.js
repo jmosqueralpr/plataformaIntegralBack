@@ -44,6 +44,7 @@ const userConfigurationSchema = new mongoose.Schema({
   gpsUnitsConverter: { access: { type: Boolean, default: true }, order: { type: Number, default: 9 } },
   guiaLinternista: { access: { type: Boolean, default: true }, order: { type: Number, default: 10 } },
   downloadGestionar: { access: { type: Boolean, default: true }, order: { type: Number, default: 11 } },
+  expirationAlerts: { access: { type: Boolean, default: true }, order: { type: Number, default: 12 } },
 
   user: {
     type: mongoose.Schema.Types.ObjectId,
