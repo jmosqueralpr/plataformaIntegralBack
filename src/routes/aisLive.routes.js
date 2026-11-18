@@ -13,7 +13,8 @@ router.get('/ais/live', authRequired, (req, res) => {
 });
 
 router.post('/ais/connect', authRequired, (req, res) => {
-  res.json(connectAisFeed());
+  const { host, port } = req.body || {};
+  res.json(connectAisFeed(host, port));
 });
 
 router.post('/ais/disconnect', authRequired, (req, res) => {

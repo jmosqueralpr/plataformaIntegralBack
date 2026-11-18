@@ -268,8 +268,10 @@ const createFeedProcessor = (sourceName) => {
 };
 
 const AIS_SOURCE_NAME = 'AIS principal';
-const AIS_SOURCE_HOST = '190.210.40.127';
-const AIS_SOURCE_PORT = 3069;
+const DEFAULT_AIS_SOURCE_HOST = '190.210.40.127';
+const DEFAULT_AIS_SOURCE_PORT = 3069;
+let currentAisHost = DEFAULT_AIS_SOURCE_HOST;
+let currentAisPort = DEFAULT_AIS_SOURCE_PORT;
 const processor = createFeedProcessor(AIS_SOURCE_NAME);
 const connectionState = {
   status: 'disconnected',
@@ -284,13 +286,13 @@ const connect = () => {
   connectionState.status = 'connecting';
   connectionState.error = null;
   let buffer = '';
-  const client = net.createConnection({ host: AIS_SOURCE_HOST, port: AIS_SOURCE_PORT });
+  const client = net.createConnection({ host: currentAisHost, port: currentAisPort });
   activeClient = client;
 
   client.on('connect', () => {
     if (activeClient !== client || !connectionRequested) return;
     connectionState.status = 'connected';
-    console.log(`Conectado a la fuente AIS ${AIS_SOURCE_NAME} (${AIS_SOURCE_HOST}:${AIS_SOURCE_PORT}).`);
+    console.log(`Conectado a la fuente AIS ${AIS_SOURCE_NAME} (${currentAisHost}:${currentAisPort}).`);
   });
 
   client.on('data', (chunk) => {
@@ -307,7 +309,7 @@ const connect = () => {
     if (activeClient !== client || !connectionRequested) return;
     connectionState.status = 'error';
     connectionState.error = 'No se pudo conectar a la fuente AIS.';
-    console.error(`Error de conexión AIS (${AIS_SOURCE_HOST}:${AIS_SOURCE_PORT}):`, error.message);
+    console.error(`Error de conexión AIS (${currentAisHost}:${currentAisPort}):`, error.message);
   });
 
   client.on('close', () => {
@@ -321,9 +323,11 @@ const connect = () => {
   });
 };
 
-const connectAisFeed = () => {
+const connectAisFeed = (host, port) => {
   if (!connectionRequested) {
     connectionRequested = true;
+    if (host) currentAisHost = String(host);
+    if (port) currentAisPort = Number(port);
     connect();
   }
   return getAisLiveSnapshot();
@@ -345,7 +349,7 @@ const disconnectAisFeed = () => {
 
 const getAisLiveSnapshot = () => ({
   ...connectionState,
-  sourceAddress: `${AIS_SOURCE_HOST}:${AIS_SOURCE_PORT}`,
+  sourceAddress: `${currentAisHost}:${currentAisPort}`,
   ...processor.snapshot(),
 });
 
