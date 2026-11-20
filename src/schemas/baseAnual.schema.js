@@ -40,7 +40,7 @@ const createBaseAnualSchema = z.object({
   tareas_ejecutadas: z.string().optional(),
   tareas_pendientes: z.string().optional(),
 
-  elementos_entregados: z.string().optional(),
+  elementos_entregados: z.union([z.array(a_enviarItemSchema), z.string()]).optional().transform(normalizeAEnviar).default([]),
   tareas_a_realizar: z.string().optional(),
   elementos_proxima_campania: z.string().optional(),
   tareas_proxima_campania: z.string().optional(),

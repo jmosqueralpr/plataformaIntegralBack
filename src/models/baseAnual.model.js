@@ -49,7 +49,8 @@ const baseAnualSchema = new mongoose.Schema({
   },
 
   elementos_entregados: {
-    type: String
+    type: [a_enviarSchema],
+    default: []
   },
   tareas_a_realizar: {
     type: String
