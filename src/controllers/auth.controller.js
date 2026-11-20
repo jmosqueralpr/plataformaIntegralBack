@@ -1,5 +1,6 @@
 
 const User = require('../models/user.model.js');
+const Expiration = require('../models/expiration.model.js');
 const bcrypt = require('bcryptjs');
 const createAccessToken = require('../libs/jwt.js');
 
@@ -132,14 +133,51 @@ const login = async (req, res) => { //Le agrege a la funcion async porque necesi
             path: "/",           // Se aplica a toda la app
             maxAge: 3600000      // Expira en 1 hora (opcional, depende de tu implementación)
         });
-        
+
+        /* --- Resumen de vencimientos para notificar al iniciar sesión (umbral 10 días) --- */
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tenDaysLater = new Date(today);
+        tenDaysLater.setDate(tenDaysLater.getDate() + 10);
+
+        const userExpirations = await Expiration.find({
+            assignedTo: userFound.username
+        });
+
+        const vencidos = [];
+        const proximos = [];
+
+        userExpirations.forEach((exp) => {
+            if (!exp.expirationDate) return;
+            const expDate = new Date(exp.expirationDate);
+            expDate.setHours(0, 0, 0, 0);
+            if (expDate < today) {
+                vencidos.push(exp);
+            } else if (expDate <= tenDaysLater) {
+                proximos.push(exp);
+            }
+        });
+
+        vencidos.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+        proximos.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
+
+        // Vencimiento más urgente: el vencido más antiguo, si no, el próximo más cercano
+        const proximoMasUrgente = vencidos.length > 0 ? vencidos[0] : (proximos.length > 0 ? proximos[0] : null);
+
+        const expirationSummary = {
+            vencidos: vencidos.slice(0, 5),
+            proximos: proximos.slice(0, 5),
+            proximoMasUrgente
+        };
+
         res.json({                      //Devuelvo los datos de usuario al front.
             id: userFound._id,
             username: userFound.username,
             email: userFound.email,
             role: userFound.role,
             createdAt: userFound.createdAt,
-            updatedAt: userFound.updatedAt
+            updatedAt: userFound.updatedAt,
+            expirationSummary
         }); 
 
     } catch (error) {
