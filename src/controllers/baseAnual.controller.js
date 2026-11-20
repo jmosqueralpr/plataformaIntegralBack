@@ -1,5 +1,20 @@
 const BaseAnual = require('../models/baseAnual.model.js');
 
+function normalizeAEnviar(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return [];
+    return trimmed.split(/[\n;]+/).map(line => {
+      const clean = line.trim();
+      if (!clean) return null;
+      return { nombre: clean, cantidad: 1, preparado: false };
+    }).filter(Boolean);
+  }
+  return [];
+}
+
 // GET BY BASE
 const getBaseAnualByBase = async (req, res) => {
   try {
@@ -14,27 +29,34 @@ const getBaseAnualByBase = async (req, res) => {
 
 // CREATE
 const createBaseAnual = async (req, res) => {
-    try {
-    const nuevoRegistro = new BaseAnual(req.body);
+  try {
+    const body = {
+      ...req.body,
+      a_enviar: normalizeAEnviar(req.body.a_enviar)
+    };
+    const nuevoRegistro = new BaseAnual(body);
     const saved = await nuevoRegistro.save();
     res.status(201).json(saved);
   } catch (error) {
-    if (error.code === 11000) { /* El error 11000 es un error por codigo duplicado */
+    if (error.code === 11000) {
       return res.status(409).json({
         message: 'Ya existe un registro para ese año en esta base'
       });
     }
     res.status(500).json({ message: 'Error creando registro anual' });
   }
-
 };
 
 // UPDATE
 const updateBaseAnual = async (req, res) => {
   try {
+    const body = {
+      ...req.body,
+      a_enviar: normalizeAEnviar(req.body.a_enviar)
+    };
     const registro = await BaseAnual.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      body,
       { new: true }
     );
 

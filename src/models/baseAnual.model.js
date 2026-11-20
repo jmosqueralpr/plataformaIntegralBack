@@ -2,6 +2,23 @@
 
 const mongoose = require('mongoose');
 
+const a_enviarSchema = {
+  nombre: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  cantidad: {
+    type: Number,
+    default: 1,
+    min: 1
+  },
+  preparado: {
+    type: Boolean,
+    default: false
+  }
+};
+
 const baseAnualSchema = new mongoose.Schema({
   base_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -17,7 +34,8 @@ const baseAnualSchema = new mongoose.Schema({
     type: String
   },
   a_enviar: {
-    type: String
+    type: [a_enviarSchema],
+    default: []
   },
   enviado: {
     type: Boolean,
