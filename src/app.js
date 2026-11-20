@@ -20,7 +20,9 @@ const baseEventRoutes = require('./routes/baseEvento.routes.js');
 /* Config */
 const { ORIGIN_URL } = require('./config.js');
 
-const frontEndPath = path.join(__dirname, '../../Front/dist');
+const frontEndPath = process.env.FRONTEND_DIST_PATH
+  ? path.resolve(process.env.FRONTEND_DIST_PATH)
+  : path.join(__dirname, '../../Front/dist');
 
 
 const app = express(); //Inicializo
