@@ -2,7 +2,7 @@ const express = require('express');
 const { authRequired } = require('../middlewares/validateToken.js');
 const { blockGuest } = require('../middlewares/guest.middleware.js');
 const { validateSchema } = require('../middlewares/validator.middleware.js');
-const { createBaseAnualSchema } = require('../schemas/baseAnual.schema.js');
+const { createBaseAnualSchema, updateBaseAnualSchema } = require('../schemas/baseAnual.schema.js');
 
 const {
   getBaseAnualByBase,
@@ -15,8 +15,8 @@ const router = express.Router();
 
 router.get('/base-anual/:baseId', authRequired, getBaseAnualByBase);
 router.post('/base-anual', authRequired, blockGuest, validateSchema(createBaseAnualSchema), createBaseAnual);
-router.put('/base-anual/:id', authRequired, blockGuest, updateBaseAnual);
-router.patch('/base-anual/:id', authRequired, blockGuest, updateBaseAnual);
+router.put('/base-anual/:id', authRequired, blockGuest, validateSchema(updateBaseAnualSchema), updateBaseAnual);
+router.patch('/base-anual/:id', authRequired, blockGuest, validateSchema(updateBaseAnualSchema), updateBaseAnual);
 router.delete('/base-anual/:id', authRequired, blockGuest, deleteBaseAnual);
 
 module.exports = router;

@@ -49,6 +49,9 @@ const createBaseAnualSchema = z.object({
   tel_contacto: z.string().optional()
 });
 
+const updateBaseAnualSchema = createBaseAnualSchema.partial().omit({ base_id: true, anio: true });
+
 module.exports = {
-  createBaseAnualSchema
+  createBaseAnualSchema,
+  updateBaseAnualSchema
 };
