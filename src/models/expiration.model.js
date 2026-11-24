@@ -22,21 +22,25 @@ module.exports = mongoose.model('Expiration', expirationSchema);
 const mongoose = require('mongoose');
 
 const expirationSchema = new mongoose.Schema({
-  title: { type: String, required: true }, // Título obligatorio
+  title: { type: String, required: true },
   description: { type: String, required: false },
-  expirationDate: { type: String }, // No es obligatorio
-  expirationTime: { type: String, default: '10:00' }, // hora local por defecto
-  notified: { type: Boolean, default: false },
-  notified30DaysBefore: { type: Boolean, default: false },
-  notified90DaysBefore: { type: Boolean, default: false },
-  notify7DaysBefore: { type: Boolean, default: true },
-  notified7DaysBefore: { type: Boolean, default: false },
-  notify30DaysBefore: { type: Boolean, default: false },
-  notify90DaysBefore: { type: Boolean, default: false },
+  expirationDate: { type: String, required: true },
+  expirationTime: { type: String, default: '10:00' },
+  reminders: {
+    onExpiration: { type: Boolean, default: true },
+    tenDaysBefore: { type: Boolean, default: true },
+    customDaysBefore: { type: Number, default: null, min: 1, max: 365 }
+  },
+  sentReminders: [{
+    type: { type: String, enum: ['onExpiration', 'tenDaysBefore', 'custom'] },
+    sentAt: { type: Date, default: Date.now },
+    channel: { type: String, enum: ['telegram', 'email', 'both'] },
+    recipients: [String]
+  }],
   assignedTo: [{
     type: String,
     required: true,
-    default: function() { return this.user.username; } // Asignar el nombre del usuario automáticamente si no se pasa
+    default: function() { return this.user?.username || ''; }
   }]
 }, {
   timestamps: true

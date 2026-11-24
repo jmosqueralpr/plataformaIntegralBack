@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: true, // corregido de "require"
+    required: true,
     trim: true,
     unique: true,
   },
@@ -31,13 +31,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  telegramChatId: { /* La id del chat para recibir notificaciones */
+  telegramChatId: {
     type: String,
     unique: true,
     trim: true,
     default: ''
   },
-  telegramId: { /* Para poder hacer login y usar la base de datos */
+  telegramId: {
     type: String,
     unique: true,
     sparse: true
@@ -49,6 +49,10 @@ const userSchema = new mongoose.Schema({
   telegramLinkTokenExpiresAt: {
     type: Date,
     select: false
+  },
+  notificationPreferences: {
+    telegram: { type: Boolean, default: true },
+    email: { type: Boolean, default: false }
   }
 }, {
   timestamps: true

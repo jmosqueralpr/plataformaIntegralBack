@@ -1,4 +1,5 @@
 const Expiration = require('../models/expiration.model.js');
+const User = require('../models/user.model.js');
 
 // GET múltiples expirations
 const getExpirations = async (req, res) => {
@@ -15,21 +16,16 @@ const getExpirations = async (req, res) => {
 
 // POST - Crear nuevo expiration
 const createExpiration = async (req, res) => {
-  console.log("datos del body");
-  console.log(req.body);
   try {
     const {
       title,
       description,
       expirationDate,
       expirationTime = '10:00',
-      notify7DaysBefore = true,
-      notify30DaysBefore = false,
-      notify90DaysBefore = false,
+      reminders = {},
       assignedTo
     } = req.body;
 
-    // Asignar el usuario automáticamente si no se pasa assignedTo
     const assignedUsers = Array.isArray(assignedTo)
       ? assignedTo
       : typeof assignedTo === 'string' && assignedTo.trim().length > 0
@@ -41,9 +37,11 @@ const createExpiration = async (req, res) => {
       description,
       expirationDate,
       expirationTime: expirationTime || '10:00',
-      notify7DaysBefore,
-      notify30DaysBefore,
-      notify90DaysBefore,
+      reminders: {
+        onExpiration: reminders.onExpiration ?? true,
+        tenDaysBefore: reminders.tenDaysBefore ?? true,
+        customDaysBefore: reminders.customDaysBefore ?? null
+      },
       assignedTo: assignedUsers
     });
 
@@ -83,10 +81,15 @@ const updateExpiration = async (req, res) => {
       Object.prototype.hasOwnProperty.call(changes, 'expirationDate') &&
       changes.expirationDate !== currentExpiration.expirationDate
     ) {
-      changes.notified = false;
-      changes.notified7DaysBefore = false;
-      changes.notified30DaysBefore = false;
-      changes.notified90DaysBefore = false;
+      changes.sentReminders = [];
+    }
+
+    if (changes.reminders) {
+      changes.reminders = {
+        onExpiration: changes.reminders.onExpiration ?? currentExpiration.reminders?.onExpiration ?? true,
+        tenDaysBefore: changes.reminders.tenDaysBefore ?? currentExpiration.reminders?.tenDaysBefore ?? true,
+        customDaysBefore: changes.reminders.customDaysBefore ?? currentExpiration.reminders?.customDaysBefore ?? null
+      };
     }
 
     const expiration = await Expiration.findByIdAndUpdate(req.params.id, changes, {
@@ -140,7 +143,6 @@ const getExpirationSummary = async (req, res) => {
       }
     });
 
-    // Ordenar por fecha
     vencidos.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
     proximos.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
 
@@ -154,13 +156,51 @@ const getExpirationSummary = async (req, res) => {
   }
 };
 
+// GET preferencias de notificación del usuario
+const getNotificationPreferences = async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.user.username }).select('notificationPreferences');
+    const prefs = user?.notificationPreferences || { telegram: true, email: false };
+    res.json(prefs);
+  } catch (error) {
+    console.error('Error al obtener preferencias:', error);
+    res.status(500).json({ message: 'Error al obtener preferencias' });
+  }
+};
+
+// PUT preferencias de notificación del usuario
+const updateNotificationPreferences = async (req, res) => {
+  try {
+    const { telegram, email } = req.body;
+    const user = await User.findOneAndUpdate(
+      { username: req.user.username },
+      { 
+        $set: { 
+          notificationPreferences: {
+            telegram: telegram ?? true,
+            email: email ?? false
+          }
+        }
+      },
+      { new: true }
+    ).select('notificationPreferences');
+    
+    res.json(user?.notificationPreferences || { telegram: true, email: false });
+  } catch (error) {
+    console.error('Error al actualizar preferencias:', error);
+    res.status(500).json({ message: 'Error al actualizar preferencias' });
+  }
+};
+
 module.exports = {
   getExpirations,
   getExpiration,
   createExpiration,
   updateExpiration,
   deleteExpiration,
-  getExpirationSummary
+  getExpirationSummary,
+  getNotificationPreferences,
+  updateNotificationPreferences
 };
 
 

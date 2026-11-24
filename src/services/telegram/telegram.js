@@ -169,6 +169,7 @@ function mostrarMenu(chatId, customText = '¡Hola! ¿Qué te gustaría hacer?') 
         [{ text: '📋 Crear nueva tarea', callback_data: 'crear_tarea' }],
         [{ text: '📋 Ver vencimientos', callback_data: 'ver_vencimientos' }],
         [{ text: '📋 Agendar nuevo vencimiento', callback_data: 'crear_vencimiento' }],
+        [{ text: '🔔 Mis alertas', callback_data: '/mis_alertas' }],
         [{ text: '📋 Buscar solución técnica', callback_data: 'buscar_solución' }],
         [{ text: '📋 Verificar estaciónes AIS', callback_data: 'verificar_rs232' }],
         [{ text: 'ℹ️ Mi perfil', callback_data: 'ver_perfil' }]
@@ -372,6 +373,57 @@ bot.onText(/\/resumen|\/summary|\/resumen_hoy|\/daily_digest/, async (msg) => {
   }
 });
 
+bot.onText(/\/mis_alertas|\/mis_notificaciones/, async (msg) => {
+  const chatId = msg.chat.id;
+  try {
+    const user = await User.findOne({ telegramChatId: String(chatId) });
+    if (!user) return bot.sendMessage(chatId, '❌ No estás registrado.');
+
+    const expirations = await Expiration.find({ assignedTo: user.username }).sort({ expirationDate: 1 });
+    if (!expirations.length) return bot.sendMessage(chatId, '📭 No tenés vencimientos asignados.');
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const getStatus = (exp) => {
+      if (!exp.expirationDate) return 'sin-fecha';
+      const target = new Date(`${exp.expirationDate}T${exp.expirationTime || '10:00'}`);
+      const diffMs = target.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      if (target < today) return 'vencida';
+      if (diffDays <= 10) return 'proxima';
+      return 'activa';
+    };
+
+    const mensajes = expirations.map(exp => {
+      const status = getStatus(exp);
+      const statusIcon = status === 'vencida' ? '⚠️' : status === 'proxima' ? '🔥' : '✅';
+      const r = exp.reminders || { onExpiration: true, tenDaysBefore: true, customDaysBefore: null };
+      const parts = [];
+      if (r.tenDaysBefore) parts.push('10d');
+      if (r.customDaysBefore) parts.push(`${r.customDaysBefore}d`);
+      const badge = parts.length ? ` [${parts.join(' • ')}]` : ' [venc]';
+      
+      const telegramOn = user.notificationPreferences?.telegram !== false ? '📱' : '📵';
+      const emailOn = user.notificationPreferences?.email ? '📧' : '📵';
+      
+      return `${statusIcon} <b>${escapeHtml(exp.title)}</b>${badge}\n   ${telegramOn} Telegram  ${emailOn} Email\n   📅 ${exp.expirationDate} ${exp.expirationTime || '10:00'}`;
+    }).join('\n\n');
+
+    return bot.sendMessage(chatId, `🔔 <b>Tus alertas configuradas</b>\n\n${mensajes}\n\n_Tocá un vencimiento para cambiar canales:_`, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: expirations.slice(0, 10).map(exp => ([
+          { text: `🔔 ${exp.title.slice(0, 30)}`, callback_data: `exp_alerts_${exp._id}` }
+        ]))
+      }
+    });
+  } catch (error) {
+    console.error('Error en /mis_alertas:', error);
+    return bot.sendMessage(chatId, '❌ No se pudieron obtener tus alertas.');
+  }
+});
+
 /* MENSAJES DE TEXTO GENERALES */
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
@@ -547,64 +599,51 @@ bot.on('message', async (msg) => {
         draft.description = text === '-' ? '' : text;
         draft.step = 'date';
         pendingExpirations.set(chatId, draft);
-        return bot.sendMessage(chatId, '📅 Ingresá la fecha de vencimiento (AAAA-MM-DD):');
+        return bot.sendMessage(chatId, '📅 Ingresá la fecha de vencimiento (AAAAMMDD, ej: 20251231):');
       }
 
       if (draft.step === 'date') {
-        if (!isTodayOrFuture(text)) {
-          return bot.sendMessage(chatId, '❌ Fecha inválida o anterior a hoy. Usá AAAA-MM-DD.');
+        // Parsear AAAAMMDD
+        if (!/^\d{8}$/.test(text)) {
+          return bot.sendMessage(chatId, '❌ Formato inválido. Usá 8 dígitos: AAAAMMDD (ej: 20251231).');
         }
-        draft.expirationDate = text;
-        draft.step = 'time';
-        pendingExpirations.set(chatId, draft);
-        return bot.sendMessage(chatId, '⏰ Ingresá la hora (HH:mm), o enviá - para usar 10:00.');
-      }
-
-      if (draft.step === 'time') {
-        if (text !== '-' && !isValidTime(text)) {
-          return bot.sendMessage(chatId, '❌ Hora inválida. Usá HH:mm o - para 10:00.');
+        const year = parseInt(text.slice(0, 4), 10);
+        const month = parseInt(text.slice(4, 6), 10);
+        const day = parseInt(text.slice(6, 8), 10);
+        const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // Validar fecha real
+        const testDate = new Date(year, month - 1, day);
+        if (testDate.getFullYear() !== year || testDate.getMonth() !== month - 1 || testDate.getDate() !== day) {
+          return bot.sendMessage(chatId, '❌ Fecha inválida. Verificá día/mes.');
         }
-        draft.expirationTime = text === '-' ? '10:00' : text;
-        draft.step = 'reminders';
-        pendingExpirations.set(chatId, draft);
-        return bot.sendMessage(chatId, '🔔 ¿Cuándo querés recordatorios? Escribí 7, 30, 90 o una combinación separada por coma; - para ninguno.');
-      }
-
-      if (draft.step === 'reminders') {
-        const selectedDays = text === '-'
-          ? []
-          : [...new Set(text.split(',').map((day) => day.trim()))];
-        if (selectedDays.some((day) => !['7', '30', '90'].includes(day))) {
-          return bot.sendMessage(chatId, '❌ Usá solo 7, 30 o 90, separados por coma; - para ninguno.');
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (testDate < today) {
+          return bot.sendMessage(chatId, '❌ La fecha no puede ser anterior a hoy.');
         }
-        draft.notify7DaysBefore = selectedDays.includes('7');
-        draft.notify30DaysBefore = selectedDays.includes('30');
-        draft.notify90DaysBefore = selectedDays.includes('90');
-        draft.step = 'assignees';
-        pendingExpirations.set(chatId, draft);
-        return bot.sendMessage(chatId, '👥 Ingresá usuarios asignados separados por coma, o - para asignártelo a vos.');
-      }
-
-      if (draft.step === 'assignees') {
-        const assignedTo = await resolveAssignedUsers(text, user.username);
-        if (!assignedTo) {
-          return bot.sendMessage(chatId, '❌ No encontré todos esos usuarios. Ingresá sus nombres exactos separados por coma, o - para asignártelo a vos.');
-        }
-        draft.assignedTo = assignedTo;
-        draft.step = 'confirm';
-        pendingExpirations.set(chatId, draft);
-        return bot.sendMessage(
-          chatId,
-          `Confirmá el vencimiento:\n<b>${escapeHtml(draft.title)}</b>\nFecha: ${draft.expirationDate} ${draft.expirationTime}\nAsignados: ${escapeHtml(assignedTo.join(', '))}`,
-          {
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [[
-                { text: '✅ Crear vencimiento', callback_data: 'confirm_expiration_create' },
-                { text: 'Cancelar', callback_data: 'cancel_expiration_create' }
-              ]]
-            }
-          }
+        
+        // Crear directamente - asignar a uno mismo
+        draft.expirationDate = formattedDate;
+        draft.expirationTime = '10:00';
+        draft.reminders = { onExpiration: true, tenDaysBefore: true, customDaysBefore: null };
+        draft.assignedTo = [user.username];
+        
+        const expiration = new Expiration({
+          title: draft.title,
+          description: draft.description,
+          expirationDate: draft.expirationDate,
+          expirationTime: draft.expirationTime,
+          reminders: draft.reminders,
+          assignedTo: draft.assignedTo
+        });
+        await expiration.save();
+        pendingExpirations.delete(chatId);
+        
+        return bot.sendMessage(chatId, 
+          `✅ Vencimiento creado: <b>${escapeHtml(expiration.title)}</b>\n📅 ${expiration.expirationDate} ${expiration.expirationTime}\n👤 Asignado a: ${user.username}\n🔔 Recordatorios: 10 días antes + al vencer`,
+          { parse_mode: 'HTML' }
         );
       }
     }
@@ -706,6 +745,11 @@ bot.on('callback_query', async (query) => {
 
   if (data === 'mostrar_menu') return mostrarMenu(chatId);
 
+  if (data === '/mis_alertas') {
+    const msg = { chat: { id: chatId } };
+    return bot.emit('message', { ...msg, text: '/mis_alertas' });
+  }
+
   if (data === 'enlace_web') {
     return bot.sendMessage(chatId, '✏️ El enlace a la web (Para navegador web en tu PC): http://190.210.40.127:55000');
   }
@@ -762,7 +806,7 @@ bot.on('callback_query', async (query) => {
   
 
   if (data === 'crear_vencimiento') {
-    pendingExpirations.set(chatId, { step: 'title' });
+    pendingExpirations.set(chatId, { step: 'title', reminders: { onExpiration: true, tenDaysBefore: true, customDaysBefore: null } });
     return bot.sendMessage(chatId, '📝 Escribí el *título* del vencimiento:', { parse_mode: 'Markdown' });
   }
 
@@ -774,13 +818,117 @@ bot.on('callback_query', async (query) => {
       const expirations = await Expiration.find({ assignedTo: user.username }).sort({ expirationDate: 1 });
       if (!expirations.length) return bot.sendMessage(chatId, '📭 No tenés vencimientos asignados.');
 
-      for (const exp of expirations) {
-        const mensaje = `📌 <b>${escapeHtml(exp.title)}</b>\n📝 ${escapeHtml(exp.description || 'Sin descripción')}\n📅 <b>Fecha:</b> ${escapeHtml(exp.expirationDate || 'Sin fecha')}\n⏰ <b>Hora:</b> ${escapeHtml(exp.expirationTime || '10:00')}`;
-        await bot.sendMessage(chatId, mensaje, { parse_mode: 'HTML' });
-      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const getStatus = (exp) => {
+        if (!exp.expirationDate) return 'sin-fecha';
+        const target = new Date(`${exp.expirationDate}T${exp.expirationTime || '10:00'}`);
+        const diffMs = target.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        if (target < today) return 'vencida';
+        if (diffDays <= 10) return 'proxima';
+        return 'activa';
+      };
+
+      const getReminderBadge = (exp) => {
+        const r = exp.reminders || { onExpiration: true, tenDaysBefore: true, customDaysBefore: null };
+        const parts = [];
+        if (r.tenDaysBefore) parts.push('10d');
+        if (r.customDaysBefore) parts.push(`${r.customDaysBefore}d`);
+        if (!parts.length && r.onExpiration) parts.push('venc');
+        return parts.length ? ` [${parts.join(' • ')}]` : '';
+      };
+
+      const mensaje = expirations.map(exp => {
+        const status = getStatus(exp);
+        const badge = getReminderBadge(exp);
+        const statusIcon = status === 'vencida' ? '⚠️' : status === 'proxima' ? '🔥' : '✅';
+        return `${statusIcon} <b>${escapeHtml(exp.title)}</b>${badge}\n📅 ${exp.expirationDate} ${exp.expirationTime || '10:00'}`;
+      }).join('\n\n');
+
+      return bot.sendMessage(chatId, `📋 <b>Tus vencimientos</b>\n\n${mensaje}`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⚠️ Vencidos', callback_data: 'exp_filter_vencidos' }],
+            [{ text: '🔥 Próximos (10d)', callback_data: 'exp_filter_proximos' }],
+            [{ text: '✅ Activos', callback_data: 'exp_filter_activos' }],
+            [{ text: '📋 Todos', callback_data: 'exp_filter_todos' }]
+          ]
+        }
+      });
     } catch (err) {
       console.error(err);
       bot.sendMessage(chatId, '❌ Error al obtener los vencimientos.');
+    }
+  }
+
+  if (data.startsWith('exp_filter_')) {
+    const filter = data.replace('exp_filter_', '');
+    try {
+      const user = await User.findOne({ telegramChatId: String(chatId) });
+      if (!user) return bot.sendMessage(chatId, '❌ No estás registrado.');
+
+      const expirations = await Expiration.find({ assignedTo: user.username }).sort({ expirationDate: 1 });
+      if (!expirations.length) return bot.sendMessage(chatId, '📭 No tenés vencimientos asignados.');
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const getStatus = (exp) => {
+        if (!exp.expirationDate) return 'sin-fecha';
+        const target = new Date(`${exp.expirationDate}T${exp.expirationTime || '10:00'}`);
+        const diffMs = target.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        if (target < today) return 'vencida';
+        if (diffDays <= 10) return 'proxima';
+        return 'activa';
+      };
+
+      const getReminderBadge = (exp) => {
+        const r = exp.reminders || { onExpiration: true, tenDaysBefore: true, customDaysBefore: null };
+        const parts = [];
+        if (r.tenDaysBefore) parts.push('10d');
+        if (r.customDaysBefore) parts.push(`${r.customDaysBefore}d`);
+        if (!parts.length && r.onExpiration) parts.push('venc');
+        return parts.length ? ` [${parts.join(' • ')}]` : '';
+      };
+
+      let filtered = expirations;
+      if (filter === 'vencidos') filtered = expirations.filter(e => getStatus(e) === 'vencida');
+      else if (filter === 'proximos') filtered = expirations.filter(e => getStatus(e) === 'proxima');
+      else if (filter === 'activos') filtered = expirations.filter(e => getStatus(e) === 'activa');
+
+      if (!filtered.length) {
+        return bot.sendMessage(chatId, `📭 No hay vencimientos en esta categoría.`, {
+          reply_markup: {
+            inline_keyboard: [[{ text: '🔙 Volver', callback_data: 'ver_vencimientos' }]]
+          }
+        });
+      }
+
+      const mensaje = filtered.map(exp => {
+        const status = getStatus(exp);
+        const badge = getReminderBadge(exp);
+        const statusIcon = status === 'vencida' ? '⚠️' : status === 'proxima' ? '🔥' : '✅';
+        return `${statusIcon} <b>${escapeHtml(exp.title)}</b>${badge}\n📅 ${exp.expirationDate} ${exp.expirationTime || '10:00'}`;
+      }).join('\n\n');
+
+      return bot.sendMessage(chatId, `📋 <b>Vencimientos - ${filter}</b>\n\n${mensaje}`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⚠️ Vencidos', callback_data: 'exp_filter_vencidos' }],
+            [{ text: '🔥 Próximos (10d)', callback_data: 'exp_filter_proximos' }],
+            [{ text: '✅ Activos', callback_data: 'exp_filter_activos' }],
+            [{ text: '📋 Todos', callback_data: 'exp_filter_todos' }]
+          ]
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      bot.sendMessage(chatId, '❌ Error al filtrar vencimientos.');
     }
   }
 
@@ -834,30 +982,71 @@ bot.on('callback_query', async (query) => {
     return bot.sendMessage(chatId, 'Creación de tarea cancelada.');
   }
 
-  if (data === 'confirm_expiration_create') {
-    const draft = pendingExpirations.get(chatId);
-    if (!draft || draft.step !== 'confirm') {
-      return bot.sendMessage(chatId, '❌ La creación del vencimiento venció. Iniciá el proceso nuevamente.');
-    }
+  if (data.startsWith('exp_alerts_')) {
+    const expId = data.replace('exp_alerts_', '');
+    try {
+      const user = await User.findOne({ telegramChatId: String(chatId) });
+      if (!user) return bot.sendMessage(chatId, '❌ No estás registrado.');
 
-    const expiration = new Expiration({
-      title: draft.title,
-      description: draft.description,
-      expirationDate: draft.expirationDate,
-      expirationTime: draft.expirationTime || '10:00',
-      notify7DaysBefore: draft.notify7DaysBefore,
-      notify30DaysBefore: draft.notify30DaysBefore,
-      notify90DaysBefore: draft.notify90DaysBefore,
-      assignedTo: draft.assignedTo
-    });
-    await expiration.save();
-    pendingExpirations.delete(chatId);
-    return bot.sendMessage(chatId, `✅ Vencimiento creado: <b>${escapeHtml(expiration.title)}</b>`, { parse_mode: 'HTML' });
+      const exp = await Expiration.findById(expId);
+      if (!exp || !exp.assignedTo.includes(user.username)) {
+        return bot.sendMessage(chatId, '❌ No tenés permiso para modificar esta alerta.');
+      }
+
+      const telegramOn = user.notificationPreferences?.telegram !== false;
+      const emailOn = user.notificationPreferences?.email;
+
+      return bot.sendMessage(chatId,
+        `🔔 <b>${escapeHtml(exp.title)}</b>\n📅 ${exp.expirationDate} ${exp.expirationTime || '10:00'}\n\nCanales de notificación:`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: `${telegramOn ? '✅' : '⬜'} Telegram`, callback_data: `exp_toggle_tg_${expId}` }],
+              [{ text: `${emailOn ? '✅' : '⬜'} Email`, callback_data: `exp_toggle_email_${expId}` }],
+              [{ text: '🔙 Volver', callback_data: '/mis_alertas' }]
+            ]
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Error en exp_alerts:', error);
+      return bot.sendMessage(chatId, '❌ Error al cargar alerta.');
+    }
   }
 
-  if (data === 'cancel_expiration_create') {
-    pendingExpirations.delete(chatId);
-    return bot.sendMessage(chatId, 'Creación de vencimiento cancelada.');
+  if (data.startsWith('exp_toggle_tg_')) {
+    const expId = data.replace('exp_toggle_tg_', '');
+    try {
+      const user = await User.findOne({ telegramChatId: String(chatId) });
+      if (!user) return bot.sendMessage(chatId, '❌ No estás registrado.');
+
+      const newTelegram = user.notificationPreferences?.telegram === false;
+      await User.findByIdAndUpdate(user._id, {
+        $set: { 'notificationPreferences.telegram': newTelegram }
+      });
+
+      return bot.answerCallbackQuery(query.id, { text: `Telegram ${newTelegram ? 'activado' : 'desactivado'}` });
+    } catch (error) {
+      return bot.answerCallbackQuery(query.id, { text: 'Error al cambiar' });
+    }
+  }
+
+  if (data.startsWith('exp_toggle_email_')) {
+    const expId = data.replace('exp_toggle_email_', '');
+    try {
+      const user = await User.findOne({ telegramChatId: String(chatId) });
+      if (!user) return bot.sendMessage(chatId, '❌ No estás registrado.');
+
+      const newEmail = user.notificationPreferences?.email !== true;
+      await User.findByIdAndUpdate(user._id, {
+        $set: { 'notificationPreferences.email': newEmail }
+      });
+
+      return bot.answerCallbackQuery(query.id, { text: `Email ${newEmail ? 'activado' : 'desactivado'}` });
+    } catch (error) {
+      return bot.answerCallbackQuery(query.id, { text: 'Error al cambiar' });
+    }
   }
 
   if (data === 'resumen_tareas') {
