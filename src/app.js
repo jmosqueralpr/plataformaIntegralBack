@@ -13,6 +13,7 @@ const solutionRoutes = require('./routes/solution.routes.js');
 const telegramRoutes = require('./routes/telegram.routes.js');
 const mge8Routes = require('./routes/mge8.routes.js');
 const aisLiveRoutes = require('./routes/aisLive.routes.js');
+const aisSourcesRoutes = require('./routes/aisSources.routes.js');
 const baseRoutes = require('./routes/base.routes.js');
 const baseAnualRoutes = require('./routes/baseAnual.routes.js');
 const baseEventRoutes = require('./routes/baseEvento.routes.js');
@@ -76,6 +77,7 @@ app.use('/api', telegramRoutes); //Rutas de telegram para enviar un mensaje desd
 
 app.use('/api', mge8Routes); //Rutas para cargar archivos de AIS y luego decodificarlos.
 app.use('/api', aisLiveRoutes);
+app.use('/api', aisSourcesRoutes);
 
 app.use('/api', baseRoutes); //Rutas para cargar información estática de las bases
 
